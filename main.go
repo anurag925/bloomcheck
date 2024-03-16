@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"encoding/binary"
+	"encoding/gob"
 	"flag"
 	"fmt"
 	"os"
@@ -10,6 +10,8 @@ import (
 
 	"github.com/anurag925/bloomcheck/src/filter"
 )
+
+const binFileName = "filter.bin"
 
 func main() {
 	// Define a flag for the -build option
@@ -36,8 +38,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	var filter filter.BloomFilter
+	if err := loadFilter(&filter); err != nil {
+		fmt.Println("error loading filter: ", err)
+		return
+	}
+
+	fmt.Println("Words not found are: ")
+	for _, e := range operations {
+		fmt.Println(e, "found", test(filter, e))
+	}
+
 	// Print the operations
-	fmt.Println("Operations:", strings.Join(operations, ", "))
+	fmt.Println("Words:", strings.Join(operations, ", "))
 }
 
 func buildBloomFilterHash() error {
@@ -56,21 +69,33 @@ func buildBloomFilterHash() error {
 	if err := scanner.Err(); err != nil {
 		return err
 	}
-	if err := dump(*bloomFilter); err != nil {
+	if err := bloomFilter.WriteToFile(binFileName); err != nil {
 		return err
 	}
+	fmt.Println("boka", "found", test(*bloomFilter, "boka"))
 	return nil
 }
 
-func dump(data any) error {
-	f, err := os.Create("filtered.bin")
+func loadFilter(filter *filter.BloomFilter) error {
+	// Open the file for reading
+	file, err := os.Open(binFileName)
 	if err != nil {
 		return err
 	}
-	defer f.Close()
-	err = binary.Write(f, binary.LittleEndian, data)
+	defer file.Close()
+
+	// Create a new gob decoder
+	decoder := gob.NewDecoder(file)
+
+	// Decode the BloomFilter struct from the file
+	err = decoder.Decode(filter)
 	if err != nil {
 		return err
 	}
+
 	return nil
+}
+
+func test(filter filter.BloomFilter, word string) bool {
+	return filter.Test([]byte(word))
 }
