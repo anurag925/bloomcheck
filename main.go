@@ -54,7 +54,7 @@ func main() {
 }
 
 func buildBloomFilterHash() error {
-	bloomFilter := filter.NewBloomFilter(10000000, 5)
+	bloomFilter := filter.NewBloomFilter(1000000, 3)
 	file, err := os.Open("dict.txt")
 	if err != nil {
 		return err
@@ -72,7 +72,6 @@ func buildBloomFilterHash() error {
 	if err := bloomFilter.WriteToFile(binFileName); err != nil {
 		return err
 	}
-	fmt.Println("boka", "found", test(*bloomFilter, "boka"))
 	return nil
 }
 
